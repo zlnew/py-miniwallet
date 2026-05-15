@@ -1,0 +1,65 @@
+[project]
+name = "py-miniwallet"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "flask>=3.1.3",
+    "flask-migrate>=4.1.0",
+    "flask-sqlalchemy>=3.1.1",
+    "gunicorn>=26.0.0",
+    "marshmallow>=4.3.0",
+    "psycopg2-binary>=2.9.12",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+include = ["app"]
+typeCheckingMode = "recommended"
+
+reportUnsafeMultipleInheritance = "none"
+reportUnusedImport = "warning"
+reportMissingModuleSource = "warning"
+reportAny = "warning"
+reportUnknownMemberType = "warning"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+exclude = [
+    ".venv",
+    "migrations",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "W",
+    "B",
+    "C4",
+    "UP",
+    "SIM",
+    "TCH",
+    "RUF",
+]
+ignore = [
+    "E501",
+    "SIM108",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.per-file-ignores]
+"app/models.py" = ["TC003"]
