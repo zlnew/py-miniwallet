@@ -4,7 +4,7 @@ from sqlalchemy import select
 from app.dto import AccountData
 from app.extensions import db
 from app.models import Account, Transaction
-from app.schema import AccountSaveRequest, TopUpRequest
+from app.schema import AccountSaveRequest, TopUpRequest, TransferRequest
 
 wallet_bp = Blueprint("wallet", __name__)
 
@@ -103,4 +103,64 @@ def top_up():
 
 @wallet_bp.route("/transactions/transfer", methods=["POST"])
 def transfer():
-    return jsonify({})
+    payload: dict[str, str] = request.get_json() or {}
+    data = TransferRequest.model_validate(payload)
+
+    idempotency_key = request.headers.get("Idempotency-Key")
+
+    if not idempotency_key:
+        return jsonify({"message": "Missing Idempotency-Key header"}), 400
+
+    if data.from_account_id == data.to_account_id:
+        return jsonify({"message": "Cannot transfer to same account"}), 400
+
+    with db.session.begin():
+        existing_transaction = db.session.execute(
+            select(Transaction).where(Transaction.idempotency_key == idempotency_key)
+        ).scalar_one_or_none()
+
+        if existing_transaction:
+            return jsonify({"message": "Transfer already processed"})
+
+        account_ids = sorted([data.from_account_id, data.to_account_id])
+
+        accounts = (
+            db.session.execute(
+                select(Account).where(Account.id.in_(account_ids)).with_for_update()
+            )
+            .scalars()
+            .all()
+        )
+
+        accounts_map = {account.id: account for account in accounts}
+
+        from_account = accounts_map.get(data.from_account_id)
+        to_account = accounts_map.get(data.to_account_id)
+
+        if not from_account or not to_account:
+            return jsonify({"message": "Account not found"}), 404
+
+        if from_account.balance < data.amount:
+            return jsonify({"message": "Insufficient balance"}), 400
+
+        from_account.balance -= data.amount
+        to_account.balance += data.amount
+
+        db.session.add(
+            Transaction(
+                account_id=from_account.id,
+                type="transfer_out",
+                amount=data.amount,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+        db.session.add(
+            Transaction(
+                account_id=to_account.id,
+                type="transfer_in",
+                amount=data.amount,
+            )
+        )
+
+    return jsonify({"message": "Transfer successful"})
