@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, jsonify
+from pydantic import ValidationError
 
 from app.extensions import db, migrate
 from config import Config
@@ -10,6 +11,7 @@ def create_app():
 
     _init_extensions(app)
     _register_blueprints(app)
+    _register_error_handlers(app)
 
     return app
 
@@ -26,3 +28,10 @@ def _register_blueprints(app: Flask):
     from .routes import wallet_bp
 
     app.register_blueprint(wallet_bp)
+
+
+def _register_error_handlers(app: Flask):
+    def handle_validation_error(error: ValidationError):
+        return jsonify({"message": "Validation error", "errors": error.errors()}), 422
+
+    app.register_error_handler(ValidationError, handle_validation_error)
