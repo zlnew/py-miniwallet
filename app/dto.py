@@ -20,5 +20,4 @@ class TransactionData(DTO):
     account_id: int
     type: str
     amount: Decimal
-    idempotency_key: str | None
     created_at: datetime

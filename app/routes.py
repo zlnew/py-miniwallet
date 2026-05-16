@@ -61,10 +61,10 @@ def top_up():
     payload: dict[str, str] = request.get_json() or {}
     data = TopUpRequest.model_validate(payload)
 
-    idempotency_key = request.headers.get("Idempotency-Key")
+    idempotency_key = request.headers.get("X-Idempotency-Key")
 
     if not idempotency_key:
-        return jsonify({"message": "Missing Idempotency-Key header"}), 400
+        return jsonify({"message": "Missing X-Idempotency-Key header"}), 400
 
     with db.session.begin():
         existing_transaction = db.session.execute(
@@ -106,10 +106,10 @@ def transfer():
     payload: dict[str, str] = request.get_json() or {}
     data = TransferRequest.model_validate(payload)
 
-    idempotency_key = request.headers.get("Idempotency-Key")
+    idempotency_key = request.headers.get("X-Idempotency-Key")
 
     if not idempotency_key:
-        return jsonify({"message": "Missing Idempotency-Key header"}), 400
+        return jsonify({"message": "Missing X-Idempotency-Key header"}), 400
 
     if data.from_account_id == data.to_account_id:
         return jsonify({"message": "Cannot transfer to same account"}), 400
