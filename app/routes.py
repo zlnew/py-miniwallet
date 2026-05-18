@@ -4,15 +4,41 @@ from sqlalchemy import select
 from app.dto import AccountData
 from app.extensions import db
 from app.models import Account, Transaction
-from app.schema import AccountSaveRequest, TopUpRequest, TransferRequest
+from app.schema import (
+    AccountCreateRequest,
+    AccountUpdateRequest,
+    TopUpRequest,
+    TransferRequest,
+)
 
 wallet_bp = Blueprint("wallet", __name__)
+
+
+@wallet_bp.route("/accounts", methods=["GET"])
+def get_accounts():
+    accounts = db.session.scalars(select(Account)).all()
+
+    response = [AccountData.model_validate(acc).model_dump() for acc in accounts]
+
+    return jsonify(response), 200
+
+
+@wallet_bp.route("/accounts/<int:account_id>", methods=["GET"])
+def get_account(account_id: int):
+    account = db.session.get(Account, account_id)
+
+    if not account:
+        return jsonify({"message": "Account not found"}), 404
+
+    response = AccountData.model_validate(account)
+
+    return jsonify(response.model_dump())
 
 
 @wallet_bp.route("/accounts", methods=["POST"])
 def create_account():
     payload: dict[str, str] = request.get_json() or {}
-    data = AccountSaveRequest.model_validate(payload)
+    data = AccountCreateRequest.model_validate(payload)
 
     new_account = Account(name=data.name, balance=data.balance)
 
@@ -27,7 +53,7 @@ def create_account():
 @wallet_bp.route("/accounts/<int:account_id>", methods=["PATCH", "PUT"])
 def update_account(account_id: int):
     payload: dict[str, str] = request.get_json() or {}
-    data = AccountSaveRequest.model_validate(payload)
+    data = AccountUpdateRequest.model_validate(payload)
 
     account = db.session.get(Account, account_id)
 
@@ -35,21 +61,8 @@ def update_account(account_id: int):
         return jsonify({"message": "Account not found"}), 404
 
     account.name = data.name
-    account.balance = data.balance
 
     db.session.commit()
-
-    response = AccountData.model_validate(account)
-
-    return jsonify(response.model_dump())
-
-
-@wallet_bp.route("/accounts/<int:account_id>", methods=["GET"])
-def get_account(account_id: int):
-    account = db.session.get(Account, account_id)
-
-    if not account:
-        return jsonify({"message": "Account not found"}), 404
 
     response = AccountData.model_validate(account)
 

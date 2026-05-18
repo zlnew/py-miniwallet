@@ -3,9 +3,13 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, PositiveInt
 
 
-class AccountSaveRequest(BaseModel):
+class AccountCreateRequest(BaseModel):
     name: str = Field(max_length=100)
     balance: Decimal = Field(default=Decimal("0.0"), ge=0)
+
+
+class AccountUpdateRequest(BaseModel):
+    name: str = Field(max_length=100)
 
 
 class TopUpRequest(BaseModel):
