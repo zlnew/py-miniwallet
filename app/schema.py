@@ -12,6 +12,10 @@ class AccountUpdateRequest(BaseModel):
     name: str = Field(max_length=100)
 
 
+class TransactionGetRequest(BaseModel):
+    account_id: PositiveInt
+
+
 class TopUpRequest(BaseModel):
     account_id: PositiveInt
     amount: Decimal = Field(gt=0)

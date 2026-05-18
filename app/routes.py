@@ -1,13 +1,14 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 
-from app.dto import AccountData
+from app.dto import AccountData, TransactionData
 from app.extensions import db
 from app.models import Account, Transaction
 from app.schema import (
     AccountCreateRequest,
     AccountUpdateRequest,
     TopUpRequest,
+    TransactionGetRequest,
     TransferRequest,
 )
 
@@ -67,6 +68,20 @@ def update_account(account_id: int):
     response = AccountData.model_validate(account)
 
     return jsonify(response.model_dump())
+
+
+@wallet_bp.route("/transactions", methods=["GET"])
+def get_transactions():
+    payload: dict[str, str] = request.get_json() or {}
+    data = TransactionGetRequest.model_validate(payload)
+
+    transactions = db.session.scalars(
+        select(Transaction).where(Transaction.account_id == data.account_id)
+    ).all()
+
+    response = [TransactionData.model_validate(tr).model_dump() for tr in transactions]
+
+    return jsonify(response), 200
 
 
 @wallet_bp.route("/transactions/top-up", methods=["POST"])
